@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Galería y tienda de esculturas originales. Piezas únicas con envío asegurado a Europa.">
-    <title>Valeria Vance | Galería de Escultura Contemporánea</title>
+    <title>Agustín Pérez | Galería de Escultura Contemporánea</title>
     
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -118,7 +118,7 @@
             <!-- CONTROLES MODOS & CARRITO -->
             <div class="flex items-center space-x-4">
                 <!-- SELECTOR CLIENTE / ADMIN -->
-                <div class="flex items-center bg-stone-100 p-1 rounded-full border border-stone-300 shadow-inner">
+                <div id="mode-switch" class="hidden items-center bg-stone-100 p-1 rounded-full border border-stone-300 shadow-inner">
                     <button id="mode-btn-client" onclick="setMode(false)" class="px-3 py-1 text-xs font-medium bg-stone-900 text-white rounded-full shadow-sm transition-all">
                         <i class="fa-solid fa-eye text-[10px] mr-1"></i> Vista Cliente
                     </button>
@@ -182,9 +182,22 @@
                 <button onclick="filterCategory('sold')" id="filter-sold" class="filter-btn bg-white border border-stone-300 text-stone-700 hover:bg-stone-100 px-4 py-2 rounded-full transition-colors">
                     Vendidas / Colección Privada
                 </button>
+                <button onclick="filterCategory('fav')" id="filter-fav" class="filter-btn bg-white border border-stone-300 text-stone-700 hover:bg-stone-100 px-4 py-2 rounded-full transition-colors">
+                    <i class="fa-regular fa-heart mr-1"></i> Favoritas
+                </button>
             </div>
         </div>
 
+        <div class="flex flex-col sm:flex-row gap-3 mb-4">
+            <input id="search-input" oninput="renderGallery()" type="search" placeholder="Buscar por título, material, año…" class="flex-1 px-4 py-2.5 bg-white border border-stone-300 rounded-full text-sm focus:ring-2 focus:ring-stone-900 focus:outline-none">
+            <select id="sort-select" onchange="renderGallery()" class="px-4 py-2.5 bg-white border border-stone-300 rounded-full text-sm focus:outline-none">
+                <option value="recent">Orden: más recientes</option>
+                <option value="price-asc">Precio: menor a mayor</option>
+                <option value="price-desc">Precio: mayor a menor</option>
+                <option value="title">Título A–Z</option>
+            </select>
+        </div>
+        <p id="result-count" class="text-xs text-stone-500 mb-6"></p>
         <!-- GRILLA DE ESCULTURAS -->
         <div id="sculptures-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             <!-- Las tarjetas de escultura se cargan dinámicamente -->
@@ -326,6 +339,10 @@
                     <div>
                         <label class="block text-xs font-semibold text-stone-700 mb-1">Texto de Copyright</label>
                         <input type="text" id="cfg-footer-copyright" required class="w-full px-3 py-2 border border-stone-300 rounded-md text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-stone-700 mb-1">Correo del Administrador (Recibirás aquí los encargos y compras)</label>
+                        <input type="email" id="cfg-admin-email" placeholder="tu-correo@ejemplo.com" class="w-full px-3 py-2 border border-stone-300 rounded-md text-sm">
                     </div>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
@@ -573,7 +590,7 @@
                 <p class="text-xs text-stone-500 mt-1">Introduce la clave para editar las obras.</p>
             </div>
             <form onsubmit="verifyAdminPassword(event)" class="space-y-4">
-                <input type="password" id="admin-pass-input" placeholder="Contraseña (Por defecto: 1234)" required class="w-full px-3 py-2 border border-stone-300 rounded-md text-sm text-center">
+                <input type="password" id="admin-pass-input" placeholder="Contraseña" required class="w-full px-3 py-2 border border-stone-300 rounded-md text-sm text-center">
                 <button type="submit" class="w-full bg-stone-900 text-white py-2.5 rounded-md text-xs uppercase font-semibold tracking-wider hover:bg-stone-800">
                     Acceder
                 </button>
@@ -593,7 +610,7 @@
                 </div>
                 <div>
                     <h3 id="edit-modal-title" class="font-serif text-2xl font-bold text-stone-900">Editar Escultura</h3>
-                    <p class="text-xs text-stone-500">Modifica los datos, precios, fotos (varias URLs separadas por coma) o estado.</p>
+                    <p class="text-xs text-stone-500">Modifica los datos, precios, fotos, portes y embalaje específico.</p>
                 </div>
             </div>
 
@@ -606,7 +623,7 @@
                         <input type="text" id="edit-title" required class="w-full px-3 py-2 border border-stone-300 rounded-md text-sm">
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-stone-700 mb-1">Precio en Euros (€)</label>
+                        <label class="block text-xs font-semibold text-stone-700 mb-1">Precio de la Obra (€)</label>
                         <input type="number" step="0.01" id="edit-price" required class="w-full px-3 py-2 border border-stone-300 rounded-md text-sm">
                     </div>
                     <div>
@@ -617,6 +634,42 @@
                             <option value="sold">Colección Privada / Vendida</option>
                         </select>
                     </div>
+
+                    <!-- CAMPOS DE ENVÍO Y EMBALAJE POR OBRA -->
+                    <div class="p-3 bg-amber-50/60 border border-amber-200 rounded-lg sm:col-span-2 space-y-3">
+                        <h4 class="text-xs font-bold uppercase tracking-wider text-amber-900"><i class="fa-solid fa-truck-ramp-box mr-1"></i> Costes de Envío según Destino y Embalaje</h4>
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                            <div>
+                                <label class="block text-[11px] font-semibold text-stone-700 mb-1">🇪🇸 España (€)</label>
+                                <input type="number" step="0.01" id="edit-shipping-es" placeholder="0" class="w-full px-2 py-1 bg-white border border-stone-300 rounded text-xs">
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-semibold text-stone-700 mb-1">🇪🇺 Europa (€)</label>
+                                <input type="number" step="0.01" id="edit-shipping-eu" placeholder="0" class="w-full px-2 py-1 bg-white border border-stone-300 rounded text-xs">
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-semibold text-stone-700 mb-1">🇬🇧 Reino Unido (€)</label>
+                                <input type="number" step="0.01" id="edit-shipping-uk" placeholder="0" class="w-full px-2 py-1 bg-white border border-stone-300 rounded text-xs">
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-semibold text-stone-700 mb-1">🇺🇸 EEUU (€)</label>
+                                <input type="number" step="0.01" id="edit-shipping-us" placeholder="0" class="w-full px-2 py-1 bg-white border border-stone-300 rounded text-xs">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                            <div>
+                                <label class="block text-xs font-semibold text-stone-700 mb-1">Embalaje Específico (€)</label>
+                                <input type="number" step="0.01" id="edit-packaging" placeholder="0" class="w-full px-3 py-1.5 bg-white border border-stone-300 rounded-md text-sm">
+                            </div>
+                            <div class="flex items-end pb-1">
+                                <label for="edit-shipping-notice" class="flex items-center space-x-2 text-xs font-semibold text-amber-900 cursor-pointer">
+                                    <input type="checkbox" id="edit-shipping-notice" class="rounded text-amber-600 focus:ring-amber-500 w-4 h-4">
+                                    <span>Mostrar aviso "Envío/embalaje no incluido"</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
                     <div>
                         <label class="block text-xs font-semibold text-stone-700 mb-1">Técnica / Materiales</label>
                         <input type="text" id="edit-tech" required placeholder="Ej. Bronce con pátina" class="w-full px-3 py-2 border border-stone-300 rounded-md text-sm">
@@ -638,7 +691,7 @@
                         <input type="text" id="edit-base" required placeholder="Ej. Mármol negro Marquina" class="w-full px-3 py-2 border border-stone-300 rounded-md text-sm">
                     </div>
                     <div class="sm:col-span-2">
-                        <label class="block text-xs font-semibold text-stone-700 mb-1">Fotos (URLs separadas por comas para varios ángulos)</label>
+                        <label class="block text-xs font-semibold text-stone-700 mb-1">Fotos (URLs separadas por comas)</label>
                         <input type="text" id="edit-image" required placeholder="https://foto1.jpg, https://foto2.jpg" class="w-full px-3 py-2 border border-stone-300 rounded-md text-sm">
                     </div>
                     <div class="sm:col-span-2">
@@ -661,7 +714,7 @@
         </div>
     </div>
 
-    <!-- PANEL CARRITO DE COMPRAS CON PASARELA DE PAGO (BIZUM / PAYPAL / TRANSFERENCIA) -->
+    <!-- PANEL CARRITO DE COMPRAS CON DESGLOSE POR PIEZA Y DESTINO -->
     <div id="cart-drawer" class="fixed inset-y-0 right-0 w-full sm:w-96 bg-white shadow-2xl z-50 transform translate-x-full transition-transform duration-300 flex flex-col">
         <div class="p-6 border-b border-stone-200 flex justify-between items-center bg-stone-50">
             <h4 class="font-serif text-xl font-bold text-stone-900">Reserva y Compra</h4>
@@ -673,8 +726,44 @@
             <!-- Items de la lista -->
         </div>
         <div class="p-6 border-t border-stone-200 bg-stone-50 space-y-3">
+            <!-- SELECTOR DE DESTINO DE ENVÍO -->
+            <div class="bg-white p-3 rounded-lg border border-stone-200 space-y-1.5">
+                <label for="cart-destination" class="block text-xs font-bold text-stone-800 uppercase tracking-wider flex items-center justify-between">
+                    <span><i class="fa-solid fa-earth-americas mr-1 text-amber-700"></i> Destino del Envío</span>
+                </label>
+                <select id="cart-destination" onchange="updateCartUI()" class="w-full px-3 py-1.5 text-xs bg-stone-50 border border-stone-300 rounded-md font-medium text-stone-800 focus:ring-1 focus:ring-stone-900">
+                    <option value="es">🇪🇸 España (Península e Islas)</option>
+                    <option value="eu" selected>🇪🇺 Europa (Unión Europea)</option>
+                    <option value="uk">🇬🇧 Reino Unido (UK)</option>
+                    <option value="us">🇺🇸 Estados Unidos (EEUU)</option>
+                </select>
+            </div>
+
+            <!-- DESGLOSE DE GASTOS Y ENVÍO RECALCULADO DINÁMICAMENTE -->
+            <div class="space-y-2 border-b border-stone-200 pb-3 text-xs text-stone-600">
+                <div class="flex justify-between font-medium">
+                    <span>Subtotal Obras:</span>
+                    <span id="cart-subtotal">0 €</span>
+                </div>
+                <div class="flex justify-between items-center text-stone-700">
+                    <span>Envío / Portes según destino:</span>
+                    <span id="cart-shipping-total" class="font-medium text-stone-900">0 €</span>
+                </div>
+                <div class="flex justify-between items-center text-stone-700">
+                    <span>Embalaje específico de piezas:</span>
+                    <span id="cart-packaging-total" class="font-medium text-stone-900">0 €</span>
+                </div>
+                <div class="flex justify-between items-center pt-1 border-t border-stone-200/60">
+                    <label for="cart-special-box" class="flex items-center space-x-1.5 cursor-pointer select-none">
+                        <input type="checkbox" id="cart-special-box" onchange="updateCartUI()" class="rounded text-amber-600 focus:ring-amber-500 w-3.5 h-3.5">
+                        <span class="text-stone-700 font-medium">Caja de Madera Reforzada:</span>
+                    </label>
+                    <span id="cart-special-box-price" class="font-medium text-stone-800">+45 €</span>
+                </div>
+            </div>
+
             <div class="flex justify-between text-base font-bold text-stone-900">
-                <span>Total</span>
+                <span>Total Final</span>
                 <span id="cart-total">0 €</span>
             </div>
             
@@ -700,7 +789,7 @@
         </div>
     </div>
 
-    <!-- JAVASCRIPT GLOBAL COMPLETO Y SEGURO -->
+    <!-- JAVASCRIPT GLOBAL COMPLETO -->
     <script>
         const defaultSiteConfig = {
             artistName: "Valeria Vance",
@@ -712,6 +801,7 @@
             artistBio1: "Escultora nacida con formación en Bellas Artes entre Florencia y Madrid. Su obra explora la interacción entre las superficies orgánicas y la tensión estructural de los materiales nobles.",
             artistBio2: "Sus piezas se encuentran en colecciones privadas de España, Francia, Italia, Alemania y Suiza. Cada escultura es una obra única o edición numerada acompañada de certificado de autenticidad.",
             footerCopyright: "© 2026 Valeria Vance Studio. Todos los derechos reservados. Europa.",
+            adminEmail: "contacto@valeriavance.com",
             bizumPhone: "+34 600 000 000",
             bankHolder: "Valeria Vance Studio",
             bankIban: "ES91 0000 0000 0000 0000 0000",
@@ -723,6 +813,9 @@
                 id: "sculpture-1",
                 title: "Silencio Absoluto",
                 price: 3200,
+                shippingRates: { es: 35, eu: 60, uk: 85, us: 140 },
+                packaging: 35,
+                showNotice: true,
                 status: "available",
                 tech: "Bronce con pátina negra",
                 year: "2024",
@@ -736,6 +829,9 @@
                 id: "sculpture-2",
                 title: "Tensión en Blanco",
                 price: 4500,
+                shippingRates: { es: 70, eu: 120, uk: 160, us: 280 },
+                packaging: 50,
+                showNotice: true,
                 status: "reserved",
                 tech: "Talla directa en Mármol de Carrara",
                 year: "2024",
@@ -749,6 +845,9 @@
                 id: "sculpture-3",
                 title: "Viento del Sur",
                 price: 2800,
+                shippingRates: { es: 0, eu: 0, uk: 0, us: 0 },
+                packaging: 0,
+                showNotice: false,
                 status: "sold",
                 tech: "Terracota refractaria y óxidos",
                 year: "2023",
@@ -808,6 +907,7 @@
             safeSetVal('cfg-artist-bio1', cfg.artistBio1);
             safeSetVal('cfg-artist-bio2', cfg.artistBio2);
             safeSetVal('cfg-footer-copyright', cfg.footerCopyright);
+            safeSetVal('cfg-admin-email', cfg.adminEmail);
             safeSetVal('cfg-bizum-phone', cfg.bizumPhone);
             safeSetVal('cfg-bank-holder', cfg.bankHolder);
             safeSetVal('cfg-bank-iban', cfg.bankIban);
@@ -840,6 +940,7 @@
                 artistBio1: safeGetVal('cfg-artist-bio1', defaultSiteConfig.artistBio1),
                 artistBio2: safeGetVal('cfg-artist-bio2', defaultSiteConfig.artistBio2),
                 footerCopyright: safeGetVal('cfg-footer-copyright', defaultSiteConfig.footerCopyright),
+                adminEmail: safeGetVal('cfg-admin-email', defaultSiteConfig.adminEmail),
                 bizumPhone: safeGetVal('cfg-bizum-phone', defaultSiteConfig.bizumPhone),
                 bankHolder: safeGetVal('cfg-bank-holder', defaultSiteConfig.bankHolder),
                 bankIban: safeGetVal('cfg-bank-iban', defaultSiteConfig.bankIban),
@@ -943,7 +1044,7 @@
                 document.getElementById('admin-pass-input').value = '';
                 window.updateAdminUI();
             } else {
-                alert('Contraseña incorrecta (Por defecto: 1234)');
+                alert('Contraseña incorrecta');
             }
         };
 
@@ -976,12 +1077,21 @@
             if (!grid) return;
             grid.innerHTML = '';
 
+            const q = (document.getElementById('search-input')?.value || '').toLowerCase().trim();
+            const sortV = document.getElementById('sort-select')?.value || 'recent';
             const items = sculptures.filter(item => {
-                if (currentFilter === 'available') return item.status === 'available';
-                if (currentFilter === 'reserved') return item.status === 'reserved';
-                if (currentFilter === 'sold') return item.status === 'sold';
-                return true;
+                if (currentFilter === 'available' && item.status !== 'available') return false;
+                if (currentFilter === 'reserved' && item.status !== 'reserved') return false;
+                if (currentFilter === 'sold' && item.status !== 'sold') return false;
+                if (currentFilter === 'fav' && !favs.includes(item.id)) return false;
+                return !q || [item.title, item.tech, item.year, item.description, item.dimensions].join(' ').toLowerCase().includes(q);
             });
+            if (sortV === 'price-asc') items.sort((a, b) => a.price - b.price);
+            else if (sortV === 'price-desc') items.sort((a, b) => b.price - a.price);
+            else if (sortV === 'title') items.sort((a, b) => a.title.localeCompare(b.title, 'es'));
+            else items.sort((a, b) => String(b.year).localeCompare(String(a.year)));
+            const rc = document.getElementById('result-count');
+            if (rc) rc.textContent = items.length + (items.length === 1 ? ' obra' : ' obras');
 
             if (items.length === 0) {
                 grid.innerHTML = '<div class="col-span-full text-center py-12 text-stone-400">No hay obras en esta sección.</div>';
@@ -1003,6 +1113,9 @@
                     statusBadge = '<span class="bg-stone-200 text-stone-700 text-[10px] uppercase font-bold tracking-widest px-2.5 py-1 rounded-full">Colección Privada</span>';
                 }
 
+                const shippingNoticeBadge = item.showNotice ? 
+                    `<div class="mt-1 text-[10px] text-amber-700 font-semibold flex items-center space-x-1"><i class="fa-solid fa-triangle-exclamation"></i><span>Envío / embalaje no incluido</span></div>` : '';
+
                 card.innerHTML = `
                     <div>
                         ${isAdminMode ? `
@@ -1012,12 +1125,14 @@
                         ` : ''}
                         <div class="relative aspect-[4/5] bg-stone-100 overflow-hidden cursor-pointer" onclick="openDetailModal('${item.id}')">
                             <img src="${mainPhoto}" alt="${item.title}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                            <button onclick="event.stopPropagation();toggleFav('${item.id}')" class="absolute top-3 left-3 z-10 bg-white/90 w-8 h-8 rounded-full shadow flex items-center justify-center hover:scale-110 transition-transform" title="Guardar en favoritas" aria-label="Favorita"><i class="${favs.includes(item.id) ? 'fa-solid text-rose-600' : 'fa-regular text-stone-700'} fa-heart text-sm"></i></button>
                             <div class="absolute bottom-3 left-3">${statusBadge}</div>
                         </div>
                         <div class="p-5">
                             <span class="text-[11px] font-mono text-stone-400 uppercase tracking-wider block mb-1">${item.tech} • ${item.year}</span>
                             <h4 class="font-serif text-xl font-bold text-stone-900 cursor-pointer" onclick="openDetailModal('${item.id}')">${item.title}</h4>
                             <p class="text-xs text-stone-500 mt-1">${item.dimensions}</p>
+                            ${shippingNoticeBadge}
                         </div>
                     </div>
                     <div class="px-5 pb-5 pt-2 flex items-center justify-between border-t border-stone-100">
@@ -1030,14 +1145,6 @@
                 `;
                 grid.appendChild(card);
             });
-        };
-
-        window.filterCategory = function(cat) {
-            currentFilter = cat;
-            document.querySelectorAll('.filter-btn').forEach(btn => btn.className = "filter-btn bg-white border border-stone-300 text-stone-700 hover:bg-stone-100 px-4 py-2 rounded-full transition-colors");
-            const activeBtn = document.getElementById(`filter-${cat}`);
-            if (activeBtn) activeBtn.className = "filter-btn bg-stone-900 text-white px-4 py-2 rounded-full transition-colors";
-            window.renderGallery();
         };
 
         window.openDetailModal = function(id) {
@@ -1061,6 +1168,36 @@
             safeSetText('modal-weight', item.weight);
             safeSetText('modal-base', item.base);
             safeSetText('modal-description', item.description);
+
+            // Avisos y desglose de costes en el modal de detalle
+            const techBox = document.querySelector('#detail-modal .bg-stone-50');
+            if (techBox) {
+                const existingNotice = techBox.querySelector('.shipping-detail-row');
+                if (existingNotice) existingNotice.remove();
+
+                const rates = item.shippingRates || { es: item.shipping || 0, eu: item.shipping || 0, uk: item.shipping || 0, us: item.shipping || 0 };
+                const packVal = parseFloat(item.packaging) || 0;
+
+                let noticeHTML = '';
+                if (item.showNotice) {
+                    noticeHTML = `
+                        <div class="shipping-detail-row pt-2 border-t border-stone-200 mt-2 space-y-1">
+                            <div class="text-[11px] font-bold text-amber-800 flex items-center space-x-1">
+                                <i class="fa-solid fa-earth-americas"></i>
+                                <span>Envíos asegurados por destino:</span>
+                            </div>
+                            <div class="grid grid-cols-2 gap-1 text-[11px] text-stone-600 font-mono">
+                                <div>🇪🇸 España: ${rates.es ? rates.es + '€' : 'Consultar'}</div>
+                                <div>🇪🇺 Europa: ${rates.eu ? rates.eu + '€' : 'Consultar'}</div>
+                                <div>🇬🇧 Reino Unido: ${rates.uk ? rates.uk + '€' : 'Consultar'}</div>
+                                <div>🇺🇸 EEUU: ${rates.us ? rates.us + '€' : 'Consultar'}</div>
+                            </div>
+                            ${packVal > 0 ? `<div class="flex justify-between text-stone-600 text-[11px] pt-1"><span>Embalaje específico:</span><span class="font-medium">+${packVal.toLocaleString('es-ES')} €</span></div>` : ''}
+                        </div>
+                    `;
+                    techBox.insertAdjacentHTML('beforeend', noticeHTML);
+                }
+            }
 
             const thumbsContainer = document.getElementById('modal-thumbnails');
             if (thumbsContainer) {
@@ -1089,27 +1226,28 @@
             if (modal) modal.classList.remove('hidden');
         };
 
-        window.closeDetailModal = function() {
-            const modal = document.getElementById('detail-modal');
-            if (modal) modal.classList.add('hidden');
-        };
-
-        window.closeDetailModal = function() {
-            document.getElementById('detail-modal').classList.add('hidden');
-        };
-
         window.openEditModal = function(id) {
             currentEditingId = id;
             const isEdit = !!id;
-            document.getElementById('edit-modal-title').textContent = isEdit ? 'Editar Escultura' : 'Agregar Nueva Escultura';
-            document.getElementById('delete-btn').style.display = isEdit ? 'block' : 'none';
+            const titleEl = document.getElementById('edit-modal-title');
+            if (titleEl) titleEl.textContent = isEdit ? 'Editar Escultura' : 'Agregar Nueva Escultura';
+            
+            const delBtn = document.getElementById('delete-btn');
+            if (delBtn) delBtn.style.display = isEdit ? 'block' : 'none';
 
             if (isEdit) {
                 const item = sculptures.find(s => s.id === id);
                 if (item) {
+                    const rates = item.shippingRates || { es: item.shipping || 0, eu: item.shipping || 0, uk: item.shipping || 0, us: item.shipping || 0 };
                     document.getElementById('edit-id').value = item.id;
                     document.getElementById('edit-title').value = item.title;
                     document.getElementById('edit-price').value = item.price;
+                    document.getElementById('edit-shipping-es').value = rates.es || 0;
+                    document.getElementById('edit-shipping-eu').value = rates.eu || 0;
+                    document.getElementById('edit-shipping-uk').value = rates.uk || 0;
+                    document.getElementById('edit-shipping-us').value = rates.us || 0;
+                    document.getElementById('edit-packaging').value = item.packaging || 0;
+                    document.getElementById('edit-shipping-notice').checked = !!item.showNotice;
                     document.getElementById('edit-status').value = item.status;
                     document.getElementById('edit-tech').value = item.tech;
                     document.getElementById('edit-year').value = item.year;
@@ -1122,12 +1260,14 @@
             } else {
                 document.getElementById('edit-form').reset();
                 document.getElementById('edit-id').value = '';
+                document.getElementById('edit-shipping-es').value = 0;
+                document.getElementById('edit-shipping-eu').value = 0;
+                document.getElementById('edit-shipping-uk').value = 0;
+                document.getElementById('edit-shipping-us').value = 0;
+                document.getElementById('edit-packaging').value = 0;
+                document.getElementById('edit-shipping-notice').checked = true;
             }
             document.getElementById('edit-modal').classList.remove('hidden');
-        };
-
-        window.closeEditModal = function() {
-            document.getElementById('edit-modal').classList.add('hidden');
         };
 
         window.saveSculpture = function(e) {
@@ -1137,6 +1277,14 @@
                 id: id,
                 title: document.getElementById('edit-title').value,
                 price: parseFloat(document.getElementById('edit-price').value) || 0,
+                shippingRates: {
+                    es: parseFloat(document.getElementById('edit-shipping-es').value) || 0,
+                    eu: parseFloat(document.getElementById('edit-shipping-eu').value) || 0,
+                    uk: parseFloat(document.getElementById('edit-shipping-uk').value) || 0,
+                    us: parseFloat(document.getElementById('edit-shipping-us').value) || 0
+                },
+                packaging: parseFloat(document.getElementById('edit-packaging').value) || 0,
+                showNotice: document.getElementById('edit-shipping-notice').checked,
                 status: document.getElementById('edit-status').value,
                 tech: document.getElementById('edit-tech').value,
                 year: document.getElementById('edit-year').value,
@@ -1156,8 +1304,19 @@
             window.closeEditModal();
         };
 
+        window.closeDetailModal = function() {
+            const modal = document.getElementById('detail-modal');
+            if (modal) modal.classList.add('hidden');
+        };
+
+        window.closeEditModal = function() {
+            const modal = document.getElementById('edit-modal');
+            if (modal) modal.classList.add('hidden');
+        };
+
         window.deleteCurrentSculpture = function() {
-            if (confirm('¿Deseas eliminar esta obra del catálogo?')) {
+            if (!currentEditingId) return;
+            if (confirm('¿Seguro que deseas eliminar esta obra de tu catálogo?')) {
                 sculptures = sculptures.filter(s => s.id !== currentEditingId);
                 try { localStorage.setItem('vance_sculptures', JSON.stringify(sculptures)); } catch(err) {}
                 window.renderGallery();
@@ -1166,12 +1325,15 @@
         };
 
         window.toggleCart = function() {
-            document.getElementById('cart-drawer').classList.toggle('translate-x-full');
+            const drawer = document.getElementById('cart-drawer');
+            if (drawer) drawer.classList.toggle('translate-x-full');
         };
 
         window.addToCart = function(id) {
             const item = sculptures.find(s => s.id === id);
-            if (item && !cart.some(c => c.id === id)) {
+            if (!item || item.status === 'sold') return;
+
+            if (!cart.some(c => c.id === id)) {
                 cart.push(item);
                 window.updateCartUI();
             }
@@ -1187,20 +1349,35 @@
             document.getElementById('cart-count').textContent = cart.length;
             const container = document.getElementById('cart-items');
             container.innerHTML = '';
-            let total = 0;
+            
+            const dest = document.getElementById('cart-destination')?.value || 'eu';
+            
+            let subtotal = 0;
+            let totalShipping = 0;
+            let totalPackaging = 0;
 
             if (cart.length === 0) {
                 container.innerHTML = '<p class="text-center text-stone-400 text-sm py-8">Tu carrito está vacío.</p>';
             } else {
                 cart.forEach(item => {
-                    total += item.price;
+                    const rates = item.shippingRates || { es: item.shipping || 0, eu: item.shipping || 0, uk: item.shipping || 0, us: item.shipping || 0 };
+                    const itemShipping = parseFloat(rates[dest]) || 0;
+                    const itemPackaging = parseFloat(item.packaging) || 0;
+
+                    subtotal += item.price;
+                    totalShipping += itemShipping;
+                    totalPackaging += itemPackaging;
+
                     const el = document.createElement('div');
                     el.className = "flex items-center space-x-3 pb-3 border-b border-stone-100";
                     el.innerHTML = `
                         <img src="${item.image.split(',')[0]}" class="w-12 h-12 object-cover rounded">
                         <div class="flex-grow">
                             <h5 class="font-serif text-sm font-bold text-stone-900">${item.title}</h5>
-                            <span class="text-xs text-stone-500">${item.price.toLocaleString('es-ES')} €</span>
+                            <div class="text-xs text-stone-500">
+                                <span>${item.price.toLocaleString('es-ES')} €</span>
+                                ${(itemShipping || itemPackaging) ? `<span class="text-[10px] text-amber-700 block">+${(itemShipping + itemPackaging).toLocaleString('es-ES')} € (Envío & embalaje)</span>` : ''}
+                            </div>
                         </div>
                         <button onclick="removeFromCart('${item.id}')" class="text-stone-400 hover:text-red-600 text-sm">
                             <i class="fa-solid fa-trash"></i>
@@ -1209,7 +1386,22 @@
                     container.appendChild(el);
                 });
             }
-            document.getElementById('cart-total').textContent = total.toLocaleString('es-ES') + ' €';
+
+            const isSpecialBox = document.getElementById('cart-special-box')?.checked || false;
+            const specialBoxCost = isSpecialBox ? 45 : 0;
+            const total = cart.length > 0 ? (subtotal + totalShipping + totalPackaging + specialBoxCost) : 0;
+
+            const subtotalEl = document.getElementById('cart-subtotal');
+            if (subtotalEl) subtotalEl.textContent = subtotal.toLocaleString('es-ES') + ' €';
+
+            const shippingEl = document.getElementById('cart-shipping-total');
+            if (shippingEl) shippingEl.textContent = totalShipping.toLocaleString('es-ES') + ' €';
+
+            const packagingEl = document.getElementById('cart-packaging-total');
+            if (packagingEl) packagingEl.textContent = totalPackaging.toLocaleString('es-ES') + ' €';
+
+            const totalEl = document.getElementById('cart-total');
+            if (totalEl) totalEl.textContent = total.toLocaleString('es-ES') + ' €';
         };
 
         window.checkout = function(method) {
@@ -1218,12 +1410,31 @@
                 return;
             }
             const cfg = { ...defaultSiteConfig, ...siteConfig };
-            const total = cart.reduce((t, c) => t + c.price, 0);
+            const dest = document.getElementById('cart-destination')?.value || 'eu';
+            const destNames = { es: 'España (Península e Islas)', eu: 'Europa (Unión Europea)', uk: 'Reino Unido (UK)', us: 'Estados Unidos (EEUU)' };
+            const destName = destNames[dest] || dest;
+
+            const subtotal = cart.reduce((t, c) => t + c.price, 0);
+            const totalShipping = cart.reduce((t, c) => {
+                const rates = c.shippingRates || { es: c.shipping || 0, eu: c.shipping || 0, uk: c.shipping || 0, us: c.shipping || 0 };
+                return t + (parseFloat(rates[dest]) || 0);
+            }, 0);
+            const totalPackaging = cart.reduce((t, c) => t + (parseFloat(c.packaging) || 0), 0);
+            const isSpecialBox = document.getElementById('cart-special-box')?.checked || false;
+            const specialBoxCost = isSpecialBox ? 45 : 0;
+            const total = subtotal + totalShipping + totalPackaging + specialBoxCost;
+
             const titles = cart.map(c => c.title).join(', ');
             
+            let extraDetails = [`Destino seleccionado: ${destName}`];
+            if (totalShipping > 0) extraDetails.push(`Portes (${destName}): ${totalShipping}€`);
+            if (totalPackaging > 0) extraDetails.push(`Embalaje específico: ${totalPackaging}€`);
+            if (isSpecialBox) extraDetails.push(`Caja de madera reforzada: ${specialBoxCost}€`);
+            const extraText = `\n\nDesglose de envío:\n` + extraDetails.map(d => `• ${d}`).join('\n');
+
             if (method === 'wa') {
                 const lines = cart.map(c => `• ${c.title} (${c.tech}) — ${c.price.toLocaleString('es-ES')} €`).join('\n');
-                const msg = `Hola, me gustaría reservar las siguientes esculturas de tu catálogo:\n\n${lines}\n\nTotal: ${total.toLocaleString('es-ES')} €\n\n¿Podrías indicarme los detalles de pago y envío?`;
+                const msg = `Hola, me gustaría reservar las siguientes esculturas de tu catálogo:\n\n${lines}${extraText}\n\nTotal Final: ${total.toLocaleString('es-ES')} €\n\n¿Podrías indicarme los detalles de pago y entrega para ${destName}?`;
                 const phone = cfg.bizumPhone ? cfg.bizumPhone.replace(/\D/g, '') : '';
                 if (phone) {
                     window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
@@ -1233,7 +1444,7 @@
             } else if (method === 'bizum') {
                 document.getElementById('bizum-modal-amount').textContent = total.toLocaleString('es-ES') + ' €';
                 document.getElementById('bizum-modal-phone').textContent = cfg.bizumPhone || '+34 600 000 000';
-                document.getElementById('bizum-modal-concept').textContent = 'Reserva: ' + titles;
+                document.getElementById('bizum-modal-concept').textContent = 'Reserva: ' + titles + ' (' + destName + ')';
                 document.getElementById('payment-bizum-modal').classList.remove('hidden');
             } else if (method === 'paypal') {
                 document.getElementById('paypal-modal-amount').textContent = total.toLocaleString('es-ES') + ' €';
@@ -1245,7 +1456,7 @@
                 document.getElementById('bank-modal-amount').textContent = total.toLocaleString('es-ES') + ' €';
                 document.getElementById('bank-modal-holder').textContent = cfg.bankHolder || cfg.artistName || 'Valeria Vance Studio';
                 document.getElementById('bank-modal-iban').textContent = cfg.bankIban || 'ES91 0000 0000 0000 0000 0000';
-                document.getElementById('bank-modal-concept').textContent = 'Reserva: ' + titles;
+                document.getElementById('bank-modal-concept').textContent = 'Reserva: ' + titles + ' (' + destName + ')';
                 document.getElementById('payment-bank-modal').classList.remove('hidden');
             }
         };
@@ -1285,7 +1496,18 @@
 
         window.handleContact = function(e) {
             e.preventDefault();
-            alert('Mensaje enviado. Nos pondremos en contacto contigo en breve.');
+            const cfg = { ...defaultSiteConfig, ...siteConfig };
+            const formInputs = e.target.querySelectorAll('input, textarea');
+            const name = formInputs[0] ? formInputs[0].value.trim() : '';
+            const senderEmail = formInputs[1] ? formInputs[1].value.trim() : '';
+            const message = formInputs[2] ? formInputs[2].value.trim() : '';
+
+            const recipient = cfg.adminEmail || 'contacto@valeriavance.com';
+            const subject = `Nuevo Encargo / Consulta de ${name}`;
+            const body = `Nombre: ${name}\nCorreo de contacto: ${senderEmail}\n\nDetalle de la consulta/encargo:\n${message}`;
+
+            window.location.href = `mailto:${recipient}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+            alert(`Se abrirá tu programa de correo para enviar el mensaje directamente a ${recipient}.`);
             e.target.reset();
         };
 
@@ -1299,6 +1521,85 @@
                 sculptures = [...initialSculptures];
             }
             window.renderGallery();
+        });
+    </script>
+
+    <div id="lightbox" class="fixed inset-0 z-[60] hidden bg-black/90 items-center justify-center p-4 cursor-zoom-out" onclick="closeLightbox()">
+        <img id="lightbox-img" src="" alt="" class="max-w-full max-h-full object-contain">
+    </div>
+    <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-[70] bg-stone-900 text-white text-xs px-4 py-2.5 rounded-full shadow-lg opacity-0 pointer-events-none transition-opacity"></div>
+
+    <script>
+        // ===== MEJORAS: favoritas, filtros, compartir y zoom =====
+        let favs = [];
+        try { favs = JSON.parse(localStorage.getItem('vance_favs') || '[]'); } catch (e) {}
+
+        function toast(msg) {
+            const t = document.getElementById('toast');
+            t.textContent = msg; t.style.opacity = 1;
+            clearTimeout(toast._t); toast._t = setTimeout(() => t.style.opacity = 0, 2400);
+        }
+        function toggleFav(id) {
+            favs = favs.includes(id) ? favs.filter(f => f !== id) : [...favs, id];
+            try { localStorage.setItem('vance_favs', JSON.stringify(favs)); } catch (e) {}
+            toast(favs.includes(id) ? 'Guardada en favoritas' : 'Quitada de favoritas');
+            renderGallery();
+        }
+        window.filterCategory = function (cat) {
+            currentFilter = cat;
+            document.querySelectorAll('.filter-btn').forEach(b => {
+                const on = b.id === 'filter-' + cat;
+                b.className = 'filter-btn px-4 py-2 rounded-full transition-colors ' +
+                    (on ? 'bg-stone-900 text-white' : 'bg-white border border-stone-300 text-stone-700 hover:bg-stone-100');
+            });
+            renderGallery();
+        };
+
+        const _openDetail = window.openDetailModal;
+        window.openDetailModal = function (id) {
+            _openDetail(id);
+            const a = document.getElementById('modal-actions');
+            if (a) a.insertAdjacentHTML('beforeend', `<button onclick="shareSculpture('${id}')" class="w-full mt-2 border border-stone-300 text-stone-700 py-2.5 rounded-md text-xs uppercase font-semibold tracking-wider hover:bg-stone-100"><i class="fa-solid fa-share-nodes mr-1"></i> Compartir esta obra</button>`);
+            const im = document.getElementById('modal-image');
+            if (im) { im.style.cursor = 'zoom-in'; im.onclick = () => openLightbox(im.src); }
+            history.replaceState(null, '', '#obra-' + id);
+        };
+        const _closeDetail = window.closeDetailModal;
+        window.closeDetailModal = function () {
+            _closeDetail();
+            if (location.hash.startsWith('#obra-')) history.replaceState(null, '', location.pathname + location.search);
+        };
+        async function shareSculpture(id) {
+            const s = sculptures.find(x => x.id === id); if (!s) return;
+            const url = location.href.split('#')[0] + '#obra-' + id;
+            try {
+                if (navigator.share) await navigator.share({ title: s.title, text: s.title + ' — ' + s.tech, url });
+                else { await navigator.clipboard.writeText(url); toast('Enlace copiado'); }
+            } catch (e) {}
+        }
+        function openLightbox(src) {
+            document.getElementById('lightbox-img').src = src;
+            const l = document.getElementById('lightbox'); l.classList.remove('hidden'); l.classList.add('flex');
+        }
+        function closeLightbox() {
+            const l = document.getElementById('lightbox'); l.classList.add('hidden'); l.classList.remove('flex');
+        }
+        document.addEventListener('keydown', e => {
+            if (e.key !== 'Escape') return;
+            closeLightbox(); closeDetailModal();
+        });
+        // El selector Admin queda oculto para los visitantes: solo aparece al entrar con /#admin
+        function checkAdminLink() {
+            const sw = document.getElementById('mode-switch');
+            if (!sw) return;
+            const on = location.hash === '#admin';
+            sw.classList.toggle('hidden', !on);
+            sw.classList.toggle('flex', on);
+        }
+        window.addEventListener('hashchange', checkAdminLink);
+        window.addEventListener('DOMContentLoaded', () => {
+            checkAdminLink();
+            if (location.hash.startsWith('#obra-')) openDetailModal(location.hash.slice(6));
         });
     </script>
 </body>
